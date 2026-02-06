@@ -641,7 +641,39 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist, onChat, onBook, i
                   </div>
                </div>
             </div>
-
+            
+            {/* Manual Entry Form */}
+            <div className="bg-kala-900/50 border border-kala-800 rounded-xl p-6">
+               <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2"> <Bot className="w-4 h-4 text-indigo-400" /> Gemini LeadGenius Log </h4>
+               </h4>
+               <div className="space-y-3">
+                  <input 
+                     type="text" 
+                     placeholder="Query used (e.g. 'Techno venues in London')" 
+                     value={manualQuery}
+                     onChange={(e) => setManualQuery(e.target.value)}
+                     className="w-full bg-kala-900 border border-kala-700 rounded-lg px-4 py-2 text-white text-sm outline-none focus:border-kala-secondary"
+                  />
+                  <textarea 
+                     rows={2}
+                     placeholder="Response Summary / Notes from AI Tool..." 
+                     value={manualResponse}
+                     onChange={(e) => setManualResponse(e.target.value)}
+                     className="w-full bg-kala-900 border border-kala-700 rounded-lg px-4 py-2 text-white text-sm outline-none focus:border-kala-secondary resize-none"
+                  />
+                  <button 
+                     onClick={handleManualLeadSubmit}
+                     disabled={!manualQuery || !manualResponse}
+                     className="bg-kala-700 hover:bg-kala-600 text-white font-bold px-4 py-2 rounded-lg text-xs transition-colors disabled:opacity-50"
+                  >
+                     Save Entry
+                  </button>
+               </div>
+               <p className="text-[10px] text-kala-500 mt-2">
+                  * Manual recording is included in your current plan. To automate this, activate Auto-Sync in the Services Hub.
+               </p>
+            </div>
+            
             {/* MusicBrainz Artist Search */}
             <div className="bg-kala-900/50 border border-kala-800 rounded-xl p-6">
                <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
@@ -700,38 +732,7 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist, onChat, onBook, i
                </div>
            )}
 
-            {/* Manual Entry Form */}
-            <div className="bg-kala-800/30 border border-kala-700 rounded-xl p-6">
-               <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-kala-secondary" /> Record New Query (Manual)
-               </h4>
-               <div className="space-y-3">
-                  <input 
-                     type="text" 
-                     placeholder="Query used (e.g. 'Techno venues in London')" 
-                     value={manualQuery}
-                     onChange={(e) => setManualQuery(e.target.value)}
-                     className="w-full bg-kala-900 border border-kala-700 rounded-lg px-4 py-2 text-white text-sm outline-none focus:border-kala-secondary"
-                  />
-                  <textarea 
-                     rows={2}
-                     placeholder="Response Summary / Notes from AI Tool..." 
-                     value={manualResponse}
-                     onChange={(e) => setManualResponse(e.target.value)}
-                     className="w-full bg-kala-900 border border-kala-700 rounded-lg px-4 py-2 text-white text-sm outline-none focus:border-kala-secondary resize-none"
-                  />
-                  <button 
-                     onClick={handleManualLeadSubmit}
-                     disabled={!manualQuery || !manualResponse}
-                     className="bg-kala-700 hover:bg-kala-600 text-white font-bold px-4 py-2 rounded-lg text-xs transition-colors disabled:opacity-50"
-                  >
-                     Save Entry
-                  </button>
-               </div>
-               <p className="text-[10px] text-kala-500 mt-2">
-                  * Manual recording is included in your current plan. To automate this, activate Auto-Sync in the Services Hub.
-               </p>
-            </div>
+
 
             {/* Leads List */}
             <div className="space-y-4">
