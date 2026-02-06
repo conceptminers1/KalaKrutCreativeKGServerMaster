@@ -1,3 +1,4 @@
+
 import React, { useState, useTransition } from 'react';
 import { UserRole } from '../types';
 import { useData } from '../contexts/DataContext';
@@ -89,12 +90,19 @@ const Home: React.FC<HomeProps> = ({ onLogin, onViewNews, onJoin }) => {
 
   const previewMembers = users.slice(0, 5);
 
+// Correction for the handleLoginClick function
   const handleLoginClick = (method: 'web2' | 'web3') => {
     if (selectedRoleForLogin) {
+      if (loginMode === 'live' && method === 'web3') {
+        toast("Wallet login is disabled for Live Mode for security reasons.", "error");
+        return;
+      }
       if (loginMode === 'live' && method === 'web2' && (!email || !password)) {
          toast("Please enter email and password for Live access.", "warning");
          return;
       }
+...
+
 
       // Using startTransition to prevent suspension errors during view swaps
       startTransition(() => {
