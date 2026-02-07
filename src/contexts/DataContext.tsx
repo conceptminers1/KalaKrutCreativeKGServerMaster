@@ -52,6 +52,7 @@ const SYSTEM_ADMIN: RosterMember = {
   avatar: 'https://ui-avatars.com/api/?name=System+Admin&background=0D8ABC&color=fff',
   location: 'Server Room',
   verified: true,
+  onboardingComplete: true,
   rating: 5.0,
   assets: { ips: [], contents: [], events: [], products: [], services: [], equipment: [], instruments: [], tickets: [] },
   subscriberOnly: { email: 'admin@kalakrut.io', phone: 'N/A', agentContact: 'System' },
@@ -65,6 +66,7 @@ const SUPER_ADMIN: RosterMember = {
   avatar: 'https://ui-avatars.com/api/?name=Super+Admin&background=8b5cf6&color=fff',
   location: 'Global HQ',
   verified: true,
+  onboardingComplete: true,
   rating: 5.0,
   assets: { ips: [], contents: [], events: [], products: [], services: [], equipment: [], instruments: [], tickets: [] },
   subscriberOnly: { email: 'bhoominpandya@gmail.com', phone: '+1 (555) 000-SUPER', agentContact: 'Direct' },
@@ -153,6 +155,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       id: profile.id, name: profile.name, role: profile.role,
       avatar: profile.avatar || 'https://picsum.photos/seed/new_user/200',
       location: profile.location, verified: false, rating: 0,
+      onboardingComplete: false,
       walletAddress: profile.walletAddress,
       assets: { ips: [], contents: [], events: [], products: [], services: [], equipment: [], instruments: [], tickets: [] },
       subscriberOnly: { email: profile.email || 'hidden', phone: 'Hidden', agentContact: 'Direct' },
@@ -198,6 +201,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const visibleMarket = allMarketItems;
   const visibleProposals = isDemoMode ? allProposals : allProposals.filter(p => !p.isMock);
 
+  // Correctly calculated stats object, ensuring totalMembers is always accurate.
   const stats = {
     totalMembers: visibleUsers.length,
     activeGigs: visibleProposals.filter(p => p.status === 'Active').length,

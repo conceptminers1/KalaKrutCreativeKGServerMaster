@@ -1,31 +1,24 @@
 
 import React, { useState } from 'react';
-import { Proposal, UserRole } from '../types';
+import { Proposal, RosterMember } from '../types';
 import { Artist } from '../data/knowledgeGraphSchema';
 import { MOCK_PROPOSALS } from '../mockData';
-import { FileText, ThumbsUp, ThumbsDown, Clock, Lock, ShieldAlert, CheckCircle, Zap, Ban, Plus, X, RefreshCw, DollarSign, BrainCircuit, Search } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Clock, ShieldAlert, Plus, X, BrainCircuit, Search, Edit } from 'lucide-react';
 import { useWallet } from '../contexts/WalletContext';
 import { useToast } from '../contexts/ToastContext';
 import { knowledgeGraph } from '../services/knowledgeGraphService';
 
 interface DaoGovernanceProps {
-  currentUserRole?: UserRole;
-  currentUserName?: string; // <-- ADDED PROP
+  permissions: any;
   onOpenExchange?: () => void;
+  currentUser: RosterMember;
 }
 
-const DaoGovernance: React.FC<DaoGovernanceProps> = ({ currentUserRole, currentUserName, onOpenExchange }) => {
+const DaoGovernance: React.FC<DaoGovernanceProps> = ({ permissions, onOpenExchange, currentUser }) => {
   const { isConnected, connect } = useWallet();
   const { notify } = useToast();
   const [proposals, setProposals] = useState<Proposal[]>(MOCK_PROPOSALS);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // --- PERMISSION LOGIC ---
-  const isAdmin = currentUserRole === UserRole.ADMIN;
-  const isGovernor = currentUserName === 'Governor Alice';
-  const canForcePass = isAdmin; // Only Admin can force pass
-  const canVeto = isAdmin || isGovernor; // Admin or Governor Alice can veto
-  // --- END PERMISSION LOGIC ---
 
   // Form State
   const [newTitle, setNewTitle] = useState('');
@@ -64,7 +57,7 @@ Bio: ${artist.bio}
       votesAgainst: 0,
       deadline: '7 Days Left',
       status: 'Active',
-      creator: 'You',
+      creator: currentUser.name,
       quorumRequired: 20,
       currentParticipation: 0,
       isCritical: false
@@ -84,33 +77,49 @@ Bio: ${artist.bio}
       connect();
       return;
     }
+    setProposals(proposals.map(p => p.id === id ? { ...p, votesFor: vote === 'for' ? p.votesFor + 1 : p.votesFor, votesAgainst: vote === 'against' ? p.votesAgainst + 1 : p.votesAgainst } : p));
     notify(`Voted ${vote} proposal ${id}.`, 'success');
   };
 
-  const handleAdminAction = (id: string, action: 'pass' | 'veto') => {
-    if (action === 'veto' && !canVeto) {
+  const handleAdminAction = (id: string, action: 'force_pass' | 'veto' | 'ratify' | 'reject') => {
+    if (action === 'veto' && !permissions.canVetoProposals) {
         notify("You don't have permission to veto proposals.", "error");
         return;
     }
-    notify(`Proposal ${id} has been force-${action === 'pass' ? 'passed' : 'vetoed'}.`, 'info');
+    if ((action === 'ratify' || action === 'reject' || action === 'force_pass') && !permissions.canRatifyProposals) {
+        notify("You don't have permission for this action.", "error");
+        return;
+    }
+    
+    let newStatus: Proposal['status'] = 'Active';
+    switch(action) {
+        case 'force_pass': newStatus = 'Admin_Passed'; break;
+        case 'veto': newStatus = 'Vetoed'; break;
+        case 'ratify': newStatus = 'Passed'; break;
+        case 'reject': newStatus = 'Rejected'; break;
+    }
+
+    setProposals(proposals.map(p => p.id === id ? { ...p, status: newStatus } : p));
+    notify(`Proposal ${id} has been ${action.replace('_', ' ')}ed.`, 'info');
   };
+
+  const canEditProposal = (proposal: Proposal) => {
+    if (permissions.canManageAllContracts) return true;
+    if (permissions.canOnlyManageOwnContracts && proposal.creator === currentUser.name) return true;
+    return false;
+  }
 
   return (
     <div className="space-y-6 p-4 md:p-6 bg-kala-950 text-white min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold flex items-center gap-3"><BrainCircuit className="text-purple-400 w-8 h-8"/>DAO Governance</h2>
         <div className="flex items-center gap-3">
-          {isAdmin && <button onClick={() => {}} className="bg-yellow-500/10 text-yellow-400 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-yellow-500/20"><ShieldAlert className="w-4 h-4"/>Admin Panel</button>}
           <button onClick={() => setIsModalOpen(true)} className="bg-kala-secondary text-kala-900 font-bold px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-cyan-400 transition-colors"><Plus className="w-5 h-5"/>Create Proposal</button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {proposals.map(p => {
-          // Determine if the special actions bar should be shown
-          const showSpecialActions = p.status === 'Active' && (currentUserRole === UserRole.ADMIN || currentUserRole === UserRole.DAO_MEMBER);
-
-          return (
+        {proposals.map(p => (
             <div key={p.id} className={`bg-kala-900 border ${p.isCritical ? 'border-red-500/50' : 'border-kala-800'} rounded-2xl shadow-lg flex flex-col`}>
               <div className="p-5 flex-grow">
                 <div className="flex justify-between items-start mb-2">
@@ -158,32 +167,36 @@ Bio: ${artist.bio}
                   <div className="flex gap-2 w-full sm:w-auto">
                     <button onClick={() => handleVote(p.id, 'for')} className="flex-1 bg-green-500/10 text-green-400 hover:bg-green-500/20 font-bold py-2 px-4 rounded-lg text-xs transition-colors">Vote For</button>
                     <button onClick={() => handleVote(p.id, 'against')} className="flex-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 font-bold py-2 px-4 rounded-lg text-xs transition-colors">Vote Against</button>
+                    {canEditProposal(p) && <button className="flex-1 bg-gray-500/10 text-gray-400 hover:bg-gray-500/20 font-bold py-2 px-3 rounded-lg text-xs transition-colors flex items-center gap-1"><Edit size={12}/> Edit</button>}
                   </div>
                 )}
               </div>
               
-              {/* --- MODIFIED SPECIAL ACTIONS BLOCK --- */}
-              {showSpecialActions && (
-                  <div className="p-3 bg-yellow-500/5 border-t border-yellow-500/20 flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold text-yellow-400">Special Action:</span>
+              {permissions.canRatifyProposals && p.status === 'Active' && (
+                  <div className="p-3 bg-kala-700/50 border-t border-kala-700 flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-kala-300">Governor Action:</span>
                       <div className="flex gap-2">
-                          {canForcePass && ( // Only show Force Pass to Admins
-                              <button onClick={() => handleAdminAction(p.id, 'pass')} className="text-xs bg-green-500/20 text-white px-2 py-1 rounded hover:bg-green-500/30">Force Pass</button>
-                          )}
-                          <button 
-                            onClick={() => handleAdminAction(p.id, 'veto')} 
-                            disabled={!canVeto}
-                            className="text-xs bg-red-500/20 text-white px-2 py-1 rounded hover:bg-red-500/30 disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-                          >
-                            Veto
-                          </button>
+                          <button onClick={() => handleAdminAction(p.id, 'ratify')} className="text-xs bg-green-500/20 text-white px-2 py-1 rounded hover:bg-green-500/30">Ratify</button>
+                          <button onClick={() => handleAdminAction(p.id, 'reject')} className="text-xs bg-red-500/20 text-white px-2 py-1 rounded hover:bg-red-500/30">Reject</button>
                       </div>
                   </div>
               )}
-              {/* --- END MODIFIED BLOCK --- */}
+              
+              {(permissions.canRatifyProposals || permissions.canVetoProposals) && p.status === 'Active' && (
+                  <div className="p-3 bg-yellow-500/5 border-t border-yellow-500/20 flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-yellow-400">Special Action:</span>
+                      <div className="flex gap-2">
+                        {permissions.canRatifyProposals && (
+                            <button onClick={() => handleAdminAction(p.id, 'force_pass')} className="text-xs bg-purple-500/20 text-white px-2 py-1 rounded hover:bg-purple-500/30">Force Pass</button>
+                        )}
+                        {permissions.canVetoProposals && (
+                            <button onClick={() => handleAdminAction(p.id, 'veto')} className="text-xs bg-red-500/20 text-white px-2 py-1 rounded hover:bg-red-500/30">Veto</button>
+                        )}
+                      </div>
+                  </div>
+              )}
             </div>
-          )
-        })}
+        ))}
       </div>
 
       {isModalOpen && (

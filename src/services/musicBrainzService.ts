@@ -1,5 +1,5 @@
 
-import { Artist } from '../knowledgeGraphSchema';
+import { Artist } from '../data/knowledgeGraphSchema';
 
 const BASE_URL = 'https://musicbrainz.org/ws/2';
 

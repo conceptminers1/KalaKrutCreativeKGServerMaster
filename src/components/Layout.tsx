@@ -1,76 +1,91 @@
 
-import React, { useState, startTransition } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   LayoutGrid, Users, Calendar, Vote, Settings, LogOut, Menu, X, ShoppingBag, Briefcase, 
-  BarChart3, Contact2, Bot, MessageSquare, UploadCloud, Network, GitMerge, LifeBuoy, CreditCard, Coins, FileText, FileSignature, AlertTriangle, ToggleLeft, ToggleRight, ShieldCheck
+  BarChart3, Contact2, Bot, MessageSquare, UploadCloud, Network, GitMerge, LifeBuoy, CreditCard, Coins, FileText, FileSignature, AlertTriangle
 } from 'lucide-react';
-import { UserRole } from '../types';
-import { useWallet } from '../contexts/WalletContext';
-import { useData } from '../hooks/useData';
-import SupportWidget from '../components/SupportWidget';
+import { RosterMember, UserRole } from '../types';
+import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
+import { SystemConfigModal } from './SystemConfigModal';
 
 interface LayoutProps {
   children: React.ReactNode;
-  userRole: UserRole;
   onNavigate: (view: string) => void;
   currentView: string;
+  onLogout: () => void;
+  currentUser: RosterMember | null;
 }
+
+const NavItem: React.FC<{ id: string, icon: any, label: string, currentView: string, onNavigate: (view: string) => void, setIsMobileMenuOpen: (isOpen: boolean) => void }> = ({ id, icon: Icon, label, currentView, onNavigate, setIsMobileMenuOpen }) => (
+  <button
+    onClick={() => {
+      onNavigate(id);
+      setIsMobileMenuOpen(false);
+    }}
+    className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-all duration-200 ${
+      currentView === id 
+        ? 'bg-kala-secondary/10 text-kala-secondary border-r-2 border-kala-secondary' 
+        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+    }`}
+  >
+    <Icon className="w-5 h-5" />
+    <span className="font-medium">{label}</span>
+  </button>
+);
 
 const Layout: React.FC<LayoutProps> = ({ 
   children, 
-  userRole, 
   onNavigate, 
-  currentView 
+  currentView,
+  onLogout, 
+  currentUser
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAdminSettingsOpen, setIsAdminSettingsOpen] = useState(false);
-  const { isDemoMode, demoModeAvailable, setDemoModeAvailable } = useData();
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const { isDemoMode, demoModeAvailable, setDemoModeAvailable, purgeMockData } = useData();
   const { notify } = useToast();
-  const { disconnect } = useWallet();
 
-  const handleLogout = () => {
-    disconnect();
-    onNavigate('home');
-    notify("Logged out successfully.", "info");
-  };
+  const permissions = useMemo(() => {
+    if (!currentUser) return {};
+    const { role } = currentUser;
+    const isLiveAdmin = role === UserRole.SYSTEM_ADMIN_LIVE;
+    const isDemoAdmin = role === UserRole.ADMIN;
+    const isDaoGovernor = role === UserRole.DAO_GOVERNOR;
+    const isDaoMember = role === UserRole.DAO_MEMBER;
 
-  const handleSettings = () => {
-    if (userRole === UserRole.SYSTEM_ADMIN_LIVE) {
-        setIsAdminSettingsOpen(true);
-    } else {
-        notify("Global Settings are restricted to the System Admin (Live) only.", "warning");
-    }
-  };
+    return {
+      canAccessSystemConfig: isLiveAdmin,
+      canGovernDao: isLiveAdmin || isDemoAdmin || isDaoGovernor,
+      canAccessTreasury: isLiveAdmin || isDemoAdmin || isDaoGovernor,
+      canAccessHr: isLiveAdmin || isDemoAdmin,
+      canAccessAnalytics: isLiveAdmin || isDemoAdmin,
+      canAccessSupport: isLiveAdmin || isDemoAdmin,
+      canAccessLeads: isLiveAdmin || isDemoAdmin,
+      canAccessEmailTemplates: isLiveAdmin || isDemoAdmin,
+      canViewContracts: isLiveAdmin || isDemoAdmin || isDaoGovernor || isDaoMember,
+    };
+  }, [currentUser]);
+
+  const isActionAllowed = permissions.canAccessSystemConfig && !isDemoMode;
 
   const handleToggleDemoAvailability = () => {
-    if (isDemoMode) {
-       notify("System settings are read-only in Demo Mode. Login to Live Mode to make changes.", "warning");
-       return;
+    if (!isActionAllowed) {
+      notify('You do not have permission to change this setting.', 'error');
+      return;
     }
-    const newState = !demoModeAvailable;
-    setDemoModeAvailable(newState);
-    notify(`Demo Mode has been ${newState ? 'ENABLED' : 'DISABLED'} for all users.`, "success");
+    setDemoModeAvailable(!demoModeAvailable);
+    notify(`Public Demo Mode has been ${!demoModeAvailable ? 'ENABLED' : 'DISABLED'}.`, 'success');
   };
-
-  const NavItem = ({ id, icon: Icon, label }: { id: string, icon: any, label: string }) => (
-    <button
-      onClick={() => {
-        startTransition(() => {
-          onNavigate(id);
-        });
-        setIsMobileMenuOpen(false);
-      }}
-      className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg transition-all duration-200 ${
-        currentView === id 
-          ? 'bg-kala-secondary/10 text-kala-secondary border-r-2 border-kala-secondary' 
-          : 'text-slate-400 hover:bg-kala-800 hover:text-white'
-      }`}
-    >
-      <Icon className="w-5 h-5" />
-      <span className="font-medium">{label}</span>
-    </button>
-  );
+  
+  const handlePurge = () => {
+    if(isActionAllowed) {
+      purgeMockData();
+      notify('All mock data has been purged.', 'success');
+    } else {
+      notify('You do not have permission to perform this action.', 'error');
+    }
+  }
 
   const mainNavItems = [
     { id: 'dashboard', icon: LayoutGrid, label: 'Dashboard' },
@@ -86,23 +101,8 @@ const Layout: React.FC<LayoutProps> = ({
     { id: 'my_circle', icon: Users, label: 'My Circle' },
     { id: 'membership', icon: CreditCard, label: 'Membership & Plans' },
   ];
-
-  const systemNavItems = [
-    { id: 'sitemap', icon: Network, label: 'Site Map' },
-    { id: 'whitepaper', icon: FileText, label: 'Whitepaper & Docs' },
-  ];
-
-  const adminNavItems = [
-    { id: 'governance', icon: Vote, label: 'DAO Governance' },
-    { id: 'contracts', icon: FileSignature, label: 'Contracts & Agreements' },
-    { id: 'treasury', icon: Coins, label: 'Treasury' },
-    { id: 'hrd', icon: Briefcase, label: 'HRD & Team' },
-    { id: 'analytics', icon: BarChart3, label: 'Analytics' },
-    { id: 'admin_support', icon: LifeBuoy, label: 'Support Center' },
-    { id: 'leads', icon: Bot, label: 'Leads & AI' },
-    { id: 'system_docs', icon: GitMerge, label: 'Architecture & ERD' },
-    { id: 'admin_email_templates', icon: FileText, label: 'Email Templates' },
-  ];
+  
+  const navProps = { currentView, onNavigate, setIsMobileMenuOpen };
 
   return (
     <div className="min-h-screen bg-kala-900 flex text-slate-200 font-sans selection:bg-kala-secondary selection:text-kala-900 relative">
@@ -130,31 +130,46 @@ const Layout: React.FC<LayoutProps> = ({
 
         <div className="p-4 space-y-1 overflow-y-auto h-[calc(100vh-180px)] custom-scrollbar">
           <div className="text-xs font-bold text-kala-600 uppercase px-4 py-2">Main</div>
-          {mainNavItems.map(item => <NavItem key={item.id} {...item} />)}
+          {mainNavItems.map(item => <NavItem key={item.id} {...item} {...navProps} />)}
 
           <div className="text-xs font-bold text-kala-600 uppercase px-4 py-2 mt-4">Community</div>
-          {communityNavItems.map(item => <NavItem key={item.id} {...item} />)}
+          {communityNavItems.map(item => <NavItem key={item.id} {...item} {...navProps} />)}
+          
+          {(permissions.canGovernDao || permissions.canViewContracts) && (
+            <>
+              <div className="text-xs font-bold text-kala-600 uppercase px-4 py-2 mt-4">Admin & DAO</div>
+              {permissions.canGovernDao && <NavItem id="governance" icon={Vote} label="DAO Governance" {...navProps} />}
+              {permissions.canViewContracts && <NavItem id="contracts" icon={FileSignature} label="Contracts & Agreements" {...navProps} />}
+              {permissions.canAccessTreasury && <NavItem id="treasury" icon={Coins} label="Treasury" {...navProps} />}
+            </>
+          )}
+          
+          {(permissions.canAccessHr || permissions.canAccessAnalytics || permissions.canAccessSupport || permissions.canAccessLeads || permissions.canAccessSystemConfig) && (
+            <>
+              <div className="text-xs font-bold text-kala-600 uppercase px-4 py-2 mt-4">System Admin</div>
+              {permissions.canAccessHr && <NavItem id="hrd" icon={Briefcase} label="HRD & Team" {...navProps} />}
+              {permissions.canAccessAnalytics && <NavItem id="analytics" icon={BarChart3} label="Analytics" {...navProps} />}
+              {permissions.canAccessSupport && <NavItem id="admin_support" icon={LifeBuoy} label="Support Center" {...navProps} />}
+              {permissions.canAccessLeads && <NavItem id="leads" icon={Bot} label="Leads & AI" {...navProps} />}
+              {permissions.canAccessEmailTemplates && <NavItem id="admin_email_templates" icon={FileText} label="Email Templates" {...navProps} />}
+              {permissions.canAccessSystemConfig && <NavItem id="system_docs" icon={GitMerge} label="Architecture & ERD" {...navProps} />}
+            </>  
+          )}
 
           <div className="text-xs font-bold text-kala-600 uppercase px-4 py-2 mt-4">System</div>
-          {systemNavItems.map(item => <NavItem key={item.id} {...item} />)}
-          
-          {(userRole === UserRole.ADMIN || userRole === UserRole.DAO_Governor || userRole === UserRole.SYSTEM_ADMIN_LIVE) && (
-             <>
-               <div className="text-xs font-bold text-kala-600 uppercase px-4 py-2 mt-4">Admin / DAO</div>
-               {adminNavItems.map(item => <NavItem key={item.id} {...item} />)}
-             </>
-          )}
+          <NavItem id="sitemap" icon={Network} label="Site Map" {...navProps} />
+          <NavItem id="whitepaper" icon={FileText} label="Whitepaper & Docs" {...navProps} />
         </div>
 
         <div className="absolute bottom-0 w-full p-4 border-t border-kala-800 bg-kala-900">
            <button 
-             onClick={handleSettings}
+             onClick={() => setIsConfigModalOpen(true)}
              className="flex items-center gap-3 px-4 py-2 text-slate-500 hover:text-white transition-colors w-full"
            >
               <Settings className="w-5 h-5" /> Settings
            </button>
            <button 
-             onClick={handleLogout}
+             onClick={onLogout}
              className="flex items-center gap-3 px-4 py-2 text-red-400 hover:text-red-300 transition-colors w-full mt-1"
            >
               <LogOut className="w-5 h-5" /> Disconnect
@@ -173,7 +188,6 @@ const Layout: React.FC<LayoutProps> = ({
          <div className="p-4 lg:p-8 pt-20 lg:pt-8 max-w-7xl mx-auto">
            {children}
          </div>
-         <SupportWidget />
       </main>
 
       {isMobileMenuOpen && (
@@ -183,53 +197,15 @@ const Layout: React.FC<LayoutProps> = ({
         />
       )}
 
-      {isAdminSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-           <div className="bg-kala-900 border border-kala-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-              <div className="p-4 border-b border-kala-800 flex justify-between items-center bg-kala-800/50">
-                 <h3 className="text-white font-bold flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-kala-secondary" /> System Configuration
-                 </h3>
-                 <button onClick={() => setIsAdminSettingsOpen(false)} className="text-kala-500 hover:text-white">
-                    <X className="w-5 h-5" />
-                 </button>
-              </div>
-              <div className="p-6 space-y-6">
-                 <div className={`bg-kala-800 p-4 rounded-xl border border-kala-700 flex items-center justify-between ${isDemoMode ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                    <div>
-                       <h4 className="text-white font-bold text-sm flex items-center gap-2">
-                          Public Demo Mode
-                          {isDemoMode && <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded border border-yellow-500/30">READ ONLY</span>}
-                       </h4>
-                       <p className="text-xs text-kala-400 mt-1 max-w-[200px]">
-                          Allow visitors to access the platform with mock data. Disable for production launch.
-                       </p>
-                    </div>
-                    <button 
-                      onClick={handleToggleDemoAvailability}
-                      disabled={isDemoMode}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${demoModeAvailable ? 'bg-green-500' : 'bg-kala-700'} ${isDemoMode ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                    >
-                       <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${demoModeAvailable ? 'translate-x-6' : 'translate-x-0'}`}></div>
-                    </button>
-                 </div>
-                 
-                 {isDemoMode && (
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-lg flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
-                        <p className="text-xs text-yellow-200">
-                            You are currently in <b>Demo Mode</b>. Global system settings can only be changed by a verified Admin in <b>Live Mode</b>.
-                        </p>
-                    </div>
-                 )}
-                 
-                 <div className="text-xs text-center text-kala-500">
-                    Changes take effect immediately on the Login Screen.
-                 </div>
-              </div>
-           </div>
-        </div>
-      )}
+      <SystemConfigModal
+        isOpen={isConfigModalOpen}
+        onClose={() => setIsConfigModalOpen(false)}
+        isDemoAvailable={demoModeAvailable}
+        onToggleDemoAvailability={handleToggleDemoAvailability}
+        onPurge={handlePurge}
+        isActionAllowed={isActionAllowed}
+        currentUserRole={currentUser?.role}
+      />
     </div>
   );
 };

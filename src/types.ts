@@ -80,6 +80,7 @@ export interface CircleMember {
 }
 
 export interface ArtistProfile extends User {
+  onboardingComplete: boolean;
   coverImage: string;
   bio: string;
   location: string;
@@ -123,6 +124,7 @@ export interface RosterMember {
   avatar: string;
   location: string;
   verified: boolean;
+  onboardingComplete: boolean;
   walletAddress?: string;
   assets: {
     ips: any[];
@@ -184,7 +186,7 @@ export interface Milestone {
 }
 
 export interface CollabProposal {
-  id: string;
+  id:string;
   eventName: string;
   artistName: string;
   status: 'Pending' | 'Accepted' | 'Rejected' | 'Funded' | 'Negotiation';

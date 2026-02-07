@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<RosterMember | null>(null);
   const [loading, setLoading] = useState(true);
   const { users, addUser, findUserByEmail } = useData();
-  const { showToast } = useToast();
+  const { notify: showToast } = useToast();
 
   useEffect(() => {
     try {
@@ -87,6 +87,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             password,
             role,
             onboardingComplete: false,
+            avatar: `https://ui-avatars.com/api/?name=${email.split('@')[0]}&background=random`,
+            coverImage: 'https://picsum.photos/seed/picsum/1600/400',
+            bio: 'New user, bio not yet updated.',
+            location: 'Not set',
+            genres: [],
+            verified: false,
+            pressKit: { photos: [], topTracks: [], techRiderUrl: '', socials: [] },
+            stats: { gigsCompleted: 0, activeGigs: 0, rating: 0, responseTime: 'N/A' },
+            xp: 0,
+            level: 1
         };
         await addUser(newProfile);
         const newUser = findUserByEmail(email);

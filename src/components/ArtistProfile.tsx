@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { ArtistProfile as IArtistProfile, LeadQuery, UserRole } from '../types';
-import { searchArtist } from '../services/musicBrainzService';
-import { Artist } from '../types';
+import { searchArtist } from '../services/musicBrainzService'
+import { Artist } from '../data/knowledgeGraphSchema';
 import {
   //... other icons
   Search,
@@ -335,8 +335,13 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist, onChat, onBook, i
                 </h1>
                 <div className="flex items-center gap-2 text-kala-300 text-sm mt-1">
                   <MapPin className="w-4 h-4" /> {localArtist.location}
-                  <span className="mx-1">â€¢</span>
-                  {localArtist.genres.join(', ')}
+                  {localArtist.genres && localArtist.genres.length > 0 && (
+                    <>
+                      <span className="mx-1\">â€¢</span>
+                      {localArtist.genres.join(', ')}
+                    </>
+                  )}
+
                 </div>
               </div>
             </div>
@@ -645,7 +650,6 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist, onChat, onBook, i
             {/* Manual Entry Form */}
             <div className="bg-kala-900/50 border border-kala-800 rounded-xl p-6">
                <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2"> <Bot className="w-4 h-4 text-indigo-400" /> Gemini LeadGenius Log </h4>
-               </h4>
                <div className="space-y-3">
                   <input 
                      type="text" 

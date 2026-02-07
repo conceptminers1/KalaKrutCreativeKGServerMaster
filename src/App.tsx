@@ -14,7 +14,7 @@ import { WalletProvider, useWallet } from './contexts/WalletContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { UserRole, ModerationCase, ArtistProfile as IArtistProfile, Lead, Artist } from './types';
+import { UserRole, ModerationCase, ArtistProfile as IArtistProfile, Lead, Artist, RosterMember } from './types';
 import { Wallet, Bell, Search, LogOut, Lock, Loader2, UploadCloud, MessageSquare, CreditCard, CheckCircle, ShieldAlert, AlertTriangle, X, RefreshCw, ArrowLeft } from 'lucide-react';
 import { MOCK_LEADERBOARD, MOCK_ARTIST_PROFILE, MOCK_ROSTER, MOCK_USERS_BY_ROLE, MOCK_MODERATION_CASES } from './mockData';
 import Dashboard from './components/Dashboard';
@@ -107,25 +107,24 @@ const BlockedScreen: React.FC<{ onAppeal: (reason: string) => void }> = ({ onApp
 const AppContent: React.FC = () => {
   const [isPending, startTransition] = useTransition();
   const [currentView, setCurrentView] = useState('home');
-  const [currentUserRole, setCurrentUserRole] = useState<UserRole>(UserRole.ARTIST);
-  const [currentUser, setCurrentUser] = useState<IArtistProfile | null>(null);
+  const [currentUser, setCurrentUser] = useState<RosterMember | null>(null);
   const [isAppLoggedIn, setIsAppLoggedIn] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showChat, setShowChat] = useState(false);
-  const [chatRecipient, setChatRecipient] = useState(MOCK_ARTIST_PROFILE);
+  const [chatRecipient, setChatRecipient] = useState<RosterMember | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(true);
   const [showWalletHistory, setShowWalletHistory] = useState(false);
   const [showTokenExchange, setShowTokenExchange] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProfile, setSelectedProfile] = useState(MOCK_ARTIST_PROFILE);
+  const [selectedProfile, setSelectedProfile] = useState<RosterMember | null>(null);
   const [isUserBlocked, setIsUserBlocked] = useState(false);
   const [moderationCases, setModerationCases] = useState<ModerationCase[]>(MOCK_MODERATION_CASES);
   const [leads, setLeads] = useState<Lead[]>([]);
 
   const { isConnected: isWalletConnected, connect: connectWallet, disconnect: disconnectWallet, walletAddress, balances } = useWallet();
   const { notify } = useToast();
-  const { addUser, isDemoMode, findUserByEmail, findUserByWallet, updateUser } = useData();
+  const { addUser, isDemoMode, findUserByEmail, findUserByWallet, updateUser, users } = useData();
 
   const navigate = (view: string) => {
     startTransition(() => {
@@ -155,7 +154,7 @@ const AppContent: React.FC = () => {
         id: `MOD-${Date.now()}`,
         userId: currentUser.id,
         userName: currentUser.name,
-        userRole: currentUserRole,
+        userRole: currentUser.role,
         violationType: 'Automated Flag (Zero Tolerance)',
         contentSnippet: 'User content triggered global moderation filter.',
         status: 'Blocked',
@@ -186,8 +185,8 @@ const AppContent: React.FC = () => {
     if (e.key === 'Enter' && searchQuery.trim()) { navigate('search_results'); }
   };
 
-  const handleOpenChat = () => {
-    setChatRecipient(selectedProfile);
+  const handleOpenChat = (user: RosterMember) => {
+    setChatRecipient(user);
     setShowChat(true);
   };
 
@@ -204,35 +203,58 @@ const AppContent: React.FC = () => {
 
   const handleLogin = async (role: UserRole, method: 'web2' | 'web3', credentials?: any) => {
     setIsLoggingIn(true);
-    let targetUser: any;
+    let foundUser: RosterMember | undefined;
 
     if (isDemoMode) {
-       targetUser = MOCK_USERS_BY_ROLE[role] || MOCK_ARTIST_PROFILE;
+       foundUser = users.find(u => u.role === role && u.isMock);
        if (method === 'web3' && !isWalletConnected) await connectWallet();
     } else {
-       // ... (rest of the login logic is the same)
+       if (method === 'web3') {
+         if (!isWalletConnected) await connectWallet();
+         foundUser = users.find(u => u.walletAddress === walletAddress && !u.isMock);
+       } else {
+         foundUser = users.find(u => u.email === credentials.email && u.password === credentials.password && !u.isMock);
+       }
     }
 
-    if (!targetUser) { /* ... error handling ... */ return; }
+    if (!foundUser) {
+      notify("Login failed. Invalid credentials or user not found.", "error");
+      setIsLoggingIn(false);
+      return;
+    }
     
+    // This ensures we have a clean user object without mock data bleeding through
+    const targetUser: RosterMember = {
+      id: foundUser.id,
+      name: foundUser.name,
+      role: foundUser.role,
+      avatar: foundUser.avatar,
+      location: foundUser.location,
+      verified: foundUser.verified,
+      onboardingComplete: foundUser.onboardingComplete,
+      walletAddress: foundUser.walletAddress,
+      assets: foundUser.assets,
+      rating: foundUser.rating,
+      subscriberOnly: foundUser.subscriberOnly,
+    };
+
     startTransition(() => {
-      setCurrentUserRole(targetUser.role);
       setCurrentUser(targetUser);
-      setSelectedProfile(targetUser); // <<< THE FIX: Sync selected profile on login
+      setSelectedProfile(targetUser);
       setIsAppLoggedIn(true);
       setIsUserBlocked(false);
       setCurrentView('dashboard');
     });
 
     if (targetUser.role === UserRole.ARTIST) { setIsProfileComplete(true); }
-    notify(`Welcome back, ${targetUser.name}`, "info");
+    notify(`Welcome back, ${targetUser.name}!`, "info");
     setIsLoggingIn(false);
   };
 
   const handleLogout = () => {
     setIsAppLoggedIn(false);
     setCurrentUser(null);
-    setSelectedProfile(MOCK_ARTIST_PROFILE); // <<< THE FIX: Reset selected profile on logout
+    setSelectedProfile(null);
     disconnectWallet();
     navigate('home');
     setIsUserBlocked(false);
@@ -240,21 +262,9 @@ const AppContent: React.FC = () => {
   };
 
   const handleViewProfile = (id: string) => {
-    const member = MOCK_ROSTER.find(m => m.id === id);
+    const member = users.find(m => m.id === id);
     if (member) {
-      const profile = {
-         ...MOCK_ARTIST_PROFILE,
-         id: member.id,
-         name: member.name,
-         role: member.role,
-         avatar: member.avatar,
-         location: member.location,
-         verified: member.verified,
-         walletAddress: member.walletAddress,
-         bio: `${member.name} is a leading ${member.role} in the KalaKrut ecosystem...`,
-         coverImage: `https://picsum.photos/seed/${member.id}/1200/400`
-      };
-      setSelectedProfile(profile as IArtistProfile);
+      setSelectedProfile(member);
       navigate('profile');
     }
   };
@@ -263,18 +273,16 @@ const AppContent: React.FC = () => {
     if (!currentUser) return;
     const updatedUser = { ...currentUser, ...updates };
     setCurrentUser(updatedUser);
-    updateUser({
-      id: updatedUser.id,
-      name: updatedUser.name,
-      avatar: updatedUser.avatar,
-      walletAddress: updatedUser.walletAddress,
-      subscriberOnly: { ...updatedUser.subscriberOnly, email: updatedUser.email || updatedUser.subscriberOnly.email },
-      password: updatedUser.password
-    });
-    if (selectedProfile.id === currentUser.id) { setSelectedProfile(updatedUser); }
+    updateUser(updatedUser as RosterMember);
+    if (selectedProfile?.id === currentUser.id) { setSelectedProfile(updatedUser as RosterMember); }
+    notify('Profile updated successfully', 'success');
   };
   
-  // ... (rest of the component is the same)
+  const handleSignup = (profile: Omit<RosterMember, 'id'>) => {
+     const newUser = addUser(profile);
+     notify("Registration successful! Please log in.", "success");
+     navigate('home');
+  };
 
   const UserWidget = () => {
     if (!currentUser) return null;
@@ -282,7 +290,7 @@ const AppContent: React.FC = () => {
       <div className="flex flex-col md:flex-row items-end md:items-center justify-between mb-8 gap-4">
          <div className="text-white">
             <h1 className="text-2xl font-bold">Welcome back, {currentUser.name}</h1>
-            <p className="text-kala-400 text-sm">Role: {currentUserRole} &bull; {currentUser.location}</p>
+            <p className="text-kala-400 text-sm">Role: {currentUser.role} &bull; {currentUser.location}</p>
          </div>
          <div className="flex items-center gap-4">
            <div className="relative hidden lg:block">
@@ -302,7 +310,7 @@ const AppContent: React.FC = () => {
                 {isWalletConnected ? (
                   <div className="flex items-center gap-3">
                     <div>
-                      <div className="text-sm font-bold text-white text-right font-mono tracking-tighter">{walletAddress}</div>
+                      <div className="text-sm font-bold text-white text-right font-mono tracking-tighter">{walletAddress?.substring(0, 6)}...{walletAddress?.substring(walletAddress.length - 4)}</div>
                       <div className="flex gap-2 justify-end">
                         <span className="text-xs text-kala-secondary font-mono">{balances.eth.toFixed(2)} ETH</span>
                         <span className="text-xs text-purple-400 font-mono">{balances.kala.toFixed(0)} KALA</span>
@@ -314,7 +322,7 @@ const AppContent: React.FC = () => {
                   <></>
                 )}
               </div>
-              <div onClick={() => { setSelectedProfile(currentUser); navigate('profile'); }} className="w-10 h-10 rounded-full bg-gradient-to-br from-kala-secondary to-purple-600 p-0.5 cursor-pointer hover:scale-105 transition-transform ml-2" title="View My Profile">
+              <div onClick={() => handleViewProfile(currentUser.id)} className="w-10 h-10 rounded-full bg-gradient-to-br from-kala-secondary to-purple-600 p-0.5 cursor-pointer hover:scale-105 transition-transform ml-2" title="View My Profile">
                 <img src={currentUser.avatar} alt="Me" className="w-full h-full rounded-full border-2 border-kala-900 object-cover" />
               </div>
               <button onClick={handleLogout} className="text-kala-500 hover:text-red-400 transition-colors ml-2" title="Log Out"><LogOut className="w-5 h-5" /></button>
@@ -328,35 +336,97 @@ const AppContent: React.FC = () => {
     if (!isAppLoggedIn || !currentUser) {
       return <PageLoader />;
     }
+    
+    // --- Centralized Permission Logic ---
+    const isLiveAdmin = currentUser.role === UserRole.SYSTEM_ADMIN_LIVE;
+    const isDemoAdmin = currentUser.role === UserRole.ADMIN;
+    const isDaoGovernor = currentUser.role === UserRole.DAO_GOVERNOR;
+    const isDaoMember = currentUser.role === UserRole.DAO_MEMBER;
+
+    const permissions = {
+      // System Wide
+      canAccessSystemConfig: isLiveAdmin,
+      // DAO Governance
+      canGovernDao: isLiveAdmin || isDemoAdmin || isDaoGovernor,
+      canVetoProposals: isLiveAdmin,
+      canRatifyProposals: isLiveAdmin || isDemoAdmin || isDaoGovernor,
+      // Contracts & Agreements
+      canManageAllContracts: isLiveAdmin || isDemoAdmin || isDaoGovernor,
+      canOnlyManageOwnContracts: isDaoMember,
+      // Treasury
+      canAccessTreasury: isLiveAdmin || isDemoAdmin || isDaoGovernor,
+      // HR
+      canAccessHr: isLiveAdmin || isDemoAdmin,
+    };
+
+    const AccessDenied = () => (
+      <div className="text-red-400 bg-kala-800 p-8 rounded-xl text-center">
+        <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+        <p>Your current role does not have permission to view this module.</p>
+      </div>
+    );
+
     return (
       <div className={isPending ? "opacity-70 transition-opacity pointer-events-none" : "opacity-100 transition-opacity"}>
         <Suspense fallback={<PageLoader />}>
           {(() => {
             switch (currentView) {
+              // --- Open Access Pages ---
               case 'search_results': return <SearchResults query={searchQuery} onNavigate={navigate} />;
               case 'sitemap': return <Sitemap onNavigate={navigate} />;
-              case 'system_docs': return currentUserRole === UserRole.ADMIN ? <SystemDiagrams /> : <div className="text-red-400 bg-kala-800 p-8 rounded-xl text-center">Access Denied</div>;
               case 'whitepaper': return <WhitePaper />;
-              case 'register_artist': return <ArtistRegistration onComplete={() => { setIsProfileComplete(true); navigate('dashboard'); }} onBlockUser={handleBlockUser} />;
+              case 'register_artist': return <ArtistRegistration onComplete={handleSignup} onBlockUser={handleBlockUser} />;
               case 'booking': return <BookingHub onBlockUser={handleBlockUser} onOpenExchange={() => setShowTokenExchange(true)} />;
-              case 'governance': return <DaoGovernance currentUserRole={currentUserRole} onOpenExchange={() => setShowTokenExchange(true)} />;
-              case 'marketplace': return <Marketplace onBlockUser={handleBlockUser} onChat={(seller) => { setChatRecipient({ ...MOCK_ARTIST_PROFILE, name: seller.name, avatar: seller.avatar }); setShowChat(true); }} />;
-              case 'services': return <ServicesHub userRole={currentUserRole} onNavigateToProfile={() => { setSelectedProfile(currentUser); navigate('profile'); }} onBlockUser={handleBlockUser} />;
+              case 'marketplace': return <Marketplace onBlockUser={handleBlockUser} onChat={(seller) => handleOpenChat(seller as RosterMember)} />;
+              case 'services': return <ServicesHub userRole={currentUser.role} onNavigateToProfile={() => handleViewProfile(currentUser.id)} onBlockUser={handleBlockUser} />;
               case 'roster': return <Roster onNavigate={navigate} onViewProfile={handleViewProfile} />;
               case 'forum': return <Forum onBlockUser={handleBlockUser} />;
               case 'studio': return <CreativeStudio onBlockUser={handleBlockUser} />;
-              case 'admin_email_templates': return currentUserRole === UserRole.ADMIN ? <AdminEmailTemplates isDemoMode={isDemoMode} /> : <div>Access Denied</div>;
               case 'membership': return <MembershipPlans currentUser={currentUser} />;
               case 'my_circle': return <MyCircle currentUser={currentUser} />;
-              case 'leads': return currentUserRole === UserRole.ADMIN ? <AdminLeads leads={leads} addLead={addLead} /> : <LeadsAndAi leads={leads} addLead={addLead} />;
               case 'leads_and_ai': return <LeadsAndAi leads={leads} addLead={addLead} />;
-              case 'admin_support': return currentUserRole === UserRole.ADMIN ? <AdminSupport moderationCases={moderationCases} onDecision={handleAdminDecision} /> : <div>Access Denied</div>;
-              case 'contracts': return (currentUserRole === UserRole.ADMIN || currentUserRole === UserRole.DAO_GOVERNOR) ? <AdminContracts onBlockUser={handleBlockUser} onChat={(name, avatar) => { setChatRecipient({ ...MOCK_ARTIST_PROFILE, name, avatar }); setShowChat(true); }} /> : <div>Access Denied</div>;
-              case 'treasury': return (currentUserRole === UserRole.ADMIN || currentUserRole === UserRole.DAO_GOVERNOR) ? <TreasuryDashboard /> : <div>Access Denied</div>;
-              case 'hrd': return (currentUserRole === UserRole.ADMIN || currentUserRole === UserRole.DAO_GOVERNOR) ? <HRDashboard /> : <div>Access Denied</div>;
-              case 'profile': return <ArtistProfile artist={selectedProfile} onChat={handleOpenChat} onBook={() => navigate('booking')} isOwnProfile={selectedProfile.id === currentUser.id} isBlocked={isUserBlocked} onUpdateProfile={handleUpdateUserProfile} />;
-              case 'analytics': return currentUserRole === UserRole.ADMIN ? <AnalyticsDashboard /> : <div>Access Denied</div>;
+              case 'profile': return selectedProfile && <ArtistProfile artist={selectedProfile} onChat={() => handleOpenChat(selectedProfile)} onBook={() => navigate('booking')} isOwnProfile={selectedProfile.id === currentUser.id} isBlocked={isUserBlocked} onUpdateProfile={handleUpdateUserProfile} />;
               case 'announcements_internal': return <Announcements onBack={() => navigate('dashboard')} />;
+              
+              // --- Permission Gated Pages ---
+              case 'governance': 
+                return permissions.canGovernDao || permissions.canOnlyManageOwnContracts ? 
+                  <DaoGovernance 
+                    permissions={permissions} 
+                    onOpenExchange={() => setShowTokenExchange(true)} 
+                    currentUser={currentUser}
+                  /> : <AccessDenied />;
+
+              case 'contracts': 
+                return permissions.canManageAllContracts || permissions.canOnlyManageOwnContracts ? 
+                  <AdminContracts 
+                    onBlockUser={handleBlockUser} 
+                    onChat={(name, avatar) => handleOpenChat({ id: 'chat-user', name, avatar, role: UserRole.CLIENT } as RosterMember)} 
+                    permissions={permissions} 
+                    currentUser={currentUser}
+                  /> : <AccessDenied />;
+
+              case 'treasury': 
+                return permissions.canAccessTreasury ? <TreasuryDashboard /> : <AccessDenied />;
+
+              case 'hrd': 
+                return permissions.canAccessHr ? <HRDashboard /> : <AccessDenied />;
+              
+              case 'system_docs': 
+                return permissions.canAccessSystemConfig ? <SystemDiagrams /> : <AccessDenied />;
+                
+              case 'admin_email_templates': 
+                return isLiveAdmin || isDemoAdmin ? <AdminEmailTemplates isDemoMode={isDemoAdmin} canEdit={isLiveAdmin} /> : <AccessDenied />;
+
+              case 'analytics': 
+                return isLiveAdmin || isDemoAdmin ? <AnalyticsDashboard /> : <AccessDenied />;
+
+              case 'admin_support': 
+                return isLiveAdmin || isDemoAdmin ? <AdminSupport moderationCases={moderationCases} onDecision={handleAdminDecision} /> : <AccessDenied />;
+
+              case 'leads': 
+                return isLiveAdmin || isDemoAdmin ? <AdminLeads leads={leads} addLead={addLead} /> : <LeadsAndAi leads={leads} addLead={addLead} />;
+
               case 'dashboard':
               default:
                 return <Dashboard user={currentUser} onNavigate={navigate} />;
@@ -376,7 +446,7 @@ const AppContent: React.FC = () => {
             <div className="max-w-3xl mx-auto px-6 py-8">
                <button onClick={() => navigate('home')} className="flex items-center gap-2 text-kala-400 hover:text-white mb-6 transition-colors"><ArrowLeft className="w-4 h-4" /> Back to Home</button>
                <Suspense fallback={<PageLoader />}>
-                  <ArtistRegistration onComplete={(profile) => { addUser(profile); notify("Registration complete! Please log in.", "success"); navigate('home'); }} onBlockUser={handleBlockUser} />
+                  <ArtistRegistration onComplete={handleSignup} onBlockUser={handleBlockUser} />
                </Suspense>
             </div>
          </div>
@@ -386,8 +456,13 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <Layout currentView={currentView} userRole={currentUserRole} onNavigate={navigate}>
-       {showChat && (
+    <Layout 
+      currentView={currentView} 
+      onNavigate={navigate} 
+      onLogout={handleLogout}
+      currentUser={currentUser}
+    >
+       {showChat && chatRecipient && (
          <ChatOverlay recipientName={chatRecipient.name} recipientAvatar={chatRecipient.avatar} onClose={() => setShowChat(false)} onNavigateToBooking={() => { setShowChat(false); navigate('booking'); }} onBlockUser={handleBlockUser} />
        )}
        {showTokenExchange && <TokenExchange onClose={() => setShowTokenExchange(false)} />}
@@ -403,7 +478,7 @@ const App: React.FC = () => {
       <ToastProvider>
         <WalletProvider>
           <DataProvider>
-            <AppContent />
+              <AppContent />
           </DataProvider>
         </WalletProvider>
       </ToastProvider>
