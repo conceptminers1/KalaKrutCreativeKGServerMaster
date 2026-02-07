@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { ArtistProfile as IArtistProfile, LeadQuery, UserRole } from '../types';
-import { searchArtist } from '../services/musicBrainzService';
-import { Artist } from '../types';
+import { searchArtist } from '../services/musicBrainzService'
+import { Artist } from '../data/knowledgeGraphSchema';
 import {
   //... other icons
   Search,
@@ -275,7 +275,7 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist, onChat, onBook, i
                                 <CreditCard className="w-4 h-4 text-green-400" />
                                 <div>
                                    <div className="text-sm font-bold text-white">{m.label}</div>
-                                   <div className="text-xs text-kala-500">{m.type} â€¢â€¢â€¢â€¢ {m.last4}</div>
+                                   <div className="text-xs text-kala-500">{m.type} Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢ {m.last4}</div>
                                 </div>
                              </div>
                              {selectedId === m.id && <CheckCircle className="w-4 h-4 text-green-500" />}
@@ -291,7 +291,7 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist, onChat, onBook, i
                                 <Wallet className="w-4 h-4 text-purple-400" />
                                 <div>
                                    <div className="text-sm font-bold text-white">{m.label}</div>
-                                   <div className="text-xs text-kala-500">{m.network} â€¢ {m.address.substring(0,6)}...</div>
+                                   <div className="text-xs text-kala-500">{m.network} Ã¢â‚¬Â¢ {m.address.substring(0,6)}...</div>
                                 </div>
                              </div>
                              {selectedId === m.id && <CheckCircle className="w-4 h-4 text-purple-500" />}
@@ -337,7 +337,7 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist, onChat, onBook, i
                   <MapPin className="w-4 h-4" /> {localArtist.location}
                   {localArtist.genres && localArtist.genres.length > 0 && (
                     <>
-                      <span className="mx-1\">â€¢</span>
+                      <span className="mx-1\">Ã¢â‚¬Â¢</span>
                       {localArtist.genres.join(', ')}
                     </>
                   )}
@@ -604,7 +604,7 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist, onChat, onBook, i
                      <div key={i} className="flex justify-between items-center p-3 bg-kala-900/50 rounded-lg">
                         <div>
                            <div className="text-white font-bold text-sm">${payout.amount.toLocaleString()}</div>
-                           <div className="text-xs text-kala-500">{payout.date} â€¢ {payout.method}</div>
+                           <div className="text-xs text-kala-500">{payout.date} Ã¢â‚¬Â¢ {payout.method}</div>
                         </div>
                         <span className={`text-xs px-2 py-1 rounded font-bold ${
                            payout.status === 'Completed' ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'
@@ -650,7 +650,7 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist, onChat, onBook, i
             {/* Manual Entry Form */}
             <div className="bg-kala-900/50 border border-kala-800 rounded-xl p-6">
                <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2"> <Bot className="w-4 h-4 text-indigo-400" /> Gemini LeadGenius Log </h4>
-            <div className="space-y-3">
+               <div className="space-y-3">
                   <input 
                      type="text" 
                      placeholder="Query used (e.g. 'Techno venues in London')" 
@@ -995,7 +995,7 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist, onChat, onBook, i
                                   {wallet.isDefault && <span className="text-[10px] bg-purple-500/20 text-purple-400 px-1.5 rounded border border-purple-500/30">DEFAULT</span>}
                                 </div>
                                 <div className="text-xs text-kala-400 flex items-center gap-1">
-                                   <span className="text-kala-500">{wallet.network}</span> â€¢ {wallet.address}
+                                   <span className="text-kala-500">{wallet.network}</span> Ã¢â‚¬Â¢ {wallet.address}
                                 </div>
                              </div>
                           </div>
