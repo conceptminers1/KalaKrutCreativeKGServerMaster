@@ -72,7 +72,7 @@ const LinktreeIcon = ({ className }: { className?: string }) => (
 );
 
 const Home: React.FC<HomeProps> = ({ onLogin, onViewNews, onJoin }) => {
-  const { toast } = useToast();
+  const { notify: toast } = useToast();
   const { users, stats, setDemoMode, isDemoMode, demoModeAvailable } = useData();
   const [isPending, startTransition] = useTransition();
   const [selectedRoleForLogin, setSelectedRoleForLogin] = useState<UserRole | null>(null);
@@ -88,7 +88,7 @@ const Home: React.FC<HomeProps> = ({ onLogin, onViewNews, onJoin }) => {
     demoModeAvailable && isDemoMode ? 'demo' : 'live'
   );
 
-  const previewMembers = users.slice(0, 5);
+  const previewMembers = users?.slice(0, 5) || [];
 
 // Correction for the handleLoginClick function
   const handleLoginClick = (method: 'web2' | 'web3') => {
@@ -101,7 +101,7 @@ const Home: React.FC<HomeProps> = ({ onLogin, onViewNews, onJoin }) => {
          toast("Please enter email and password for Live access.", "warning");
          return;
       }
-...
+
 
 
       // Using startTransition to prevent suspension errors during view swaps
@@ -263,7 +263,7 @@ const Home: React.FC<HomeProps> = ({ onLogin, onViewNews, onJoin }) => {
                   <Eye className="w-3 h-3" /> Preview
                 </div>
               </div>
-              <div className="text-4xl font-bold text-white mb-1 tracking-tight relative z-10">{stats.totalMembers.toLocaleString()}</div>
+              <div className="text-4xl font-bold text-white mb-1 tracking-tight relative z-10">{(stats?.totalMembers || 0).toLocaleString()}</div>
               <div className="text-sm text-kala-400 uppercase font-bold tracking-wider mb-4 relative z-10">Active Members</div>
               <div className="w-full bg-kala-900 h-1.5 rounded-full overflow-hidden relative z-10">
                 <div className="bg-blue-500 h-full rounded-full w-[15%]"></div>
@@ -279,7 +279,7 @@ const Home: React.FC<HomeProps> = ({ onLogin, onViewNews, onJoin }) => {
                   <TrendingUp className="w-3 h-3" /> +100%
                 </div>
               </div>
-              <div className="text-4xl font-bold text-white mb-1 tracking-tight">{stats.activeGigs.toLocaleString()}</div>
+              <div className="text-4xl font-bold text-white mb-1 tracking-tight">{(stats?.activeGigs || 0).toLocaleString()}</div>
               <div className="text-sm text-kala-400 uppercase font-bold tracking-wider mb-4">Gigs Completed</div>
               <div className="w-full bg-kala-900 h-1.5 rounded-full overflow-hidden">
                 <div className="bg-purple-500 h-full rounded-full w-[20%]"></div>
@@ -311,7 +311,7 @@ const Home: React.FC<HomeProps> = ({ onLogin, onViewNews, onJoin }) => {
                   <TrendingUp className="w-3 h-3" /> +100%
                 </div>
               </div>
-              <div className="text-4xl font-bold text-white mb-1 tracking-tight">{stats.totalTransactions}</div>
+              <div className="text-4xl font-bold text-white mb-1 tracking-tight">{stats?.totalTransactions || '0'}</div>
               <div className="text-sm text-kala-400 uppercase font-bold tracking-wider mb-4">Total Transactions</div>
               <div className="w-full bg-kala-900 h-1.5 rounded-full overflow-hidden">
                 <div className="bg-yellow-500 h-full rounded-full w-[8%]"></div>
@@ -525,7 +525,7 @@ const Home: React.FC<HomeProps> = ({ onLogin, onViewNews, onJoin }) => {
               </div>
               <div className="p-6 space-y-4">
                  <p className="text-sm text-kala-400 mb-2">
-                   Join {stats.totalMembers.toLocaleString()} creators, venues, and organizers.
+                   Join {(stats?.totalMembers || 0).toLocaleString()} creators, venues, and organizers.
                  </p>
                  <div className="space-y-3">
                     {previewMembers.map((member, i) => (
