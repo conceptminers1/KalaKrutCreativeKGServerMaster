@@ -650,8 +650,7 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist, onChat, onBook, i
             {/* Manual Entry Form */}
             <div className="bg-kala-900/50 border border-kala-800 rounded-xl p-6">
                <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2"> <Bot className="w-4 h-4 text-indigo-400" /> Gemini LeadGenius Log </h4>
-               </h4>
-               <div className="space-y-3">
+            <div className="space-y-3">
                   <input 
                      type="text" 
                      placeholder="Query used (e.g. 'Techno venues in London')" 
