@@ -335,8 +335,13 @@ const ArtistProfile: React.FC<ArtistProfileProps> = ({ artist, onChat, onBook, i
                 </h1>
                 <div className="flex items-center gap-2 text-kala-300 text-sm mt-1">
                   <MapPin className="w-4 h-4" /> {localArtist.location}
-                  <span className="mx-1">â€¢</span>
-                  {localArtist.genres.join(', ')}
+                  {localArtist.genres && localArtist.genres.length > 0 && (
+                    <>
+                      <span className="mx-1\">â€¢</span>
+                      {localArtist.genres.join(', ')}
+                    </>
+                  )}
+
                 </div>
               </div>
             </div>
