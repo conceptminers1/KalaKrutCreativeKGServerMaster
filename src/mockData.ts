@@ -56,7 +56,7 @@ export const MOCK_ARTIST_PROFILE: ArtistProfile = {
     techRiderUrl: '#',
     socials: [{ platform: 'Instagram', followers: '45' }, { platform: 'Twitter', followers: '12' }]
   },
-  stats: { gigsCompleted: 4, activeGigs: 1, rating: 4.9, responseTime: '< 2 hrs' },
+  stats: { gigsCompleted: 3, activeGigs: 1, rating: 4.9, responseTime: '< 2 hrs' },
   equityOpportunities: [
     {
       id: 'eq-1',
@@ -112,7 +112,7 @@ export const MOCK_DAO_GOVERNOR_PROFILE: ArtistProfile = {
     avatar: 'https://picsum.photos/seed/dao/200',
     level: 15,
     bio: 'Founding member of the KalaKrut DAO. Focused on sustainable growth and artist empowerment.',
-    stats: { ...MOCK_ARTIST_PROFILE.stats, rating: 5.0 },
+    stats: { gigsCompleted: 0, activeGigs: 0, rating: 5.0, responseTime: 'N/A' },
 };
 
 export const MOCK_DAO_MEMBER_PROFILE: ArtistProfile = {
@@ -124,43 +124,34 @@ export const MOCK_DAO_MEMBER_PROFILE: ArtistProfile = {
     level: 8,
     xp: 2500,
     bio: 'Sound engineer and long-time community member. Recently accepted nomination to join the DAO.',
-    stats: { ...MOCK_ARTIST_PROFILE.stats, rating: 4.8 },
+    stats: { gigsCompleted: 1, activeGigs: 1, rating: 4.8, responseTime: '< 24 hrs' },
 };
 
 
 // Mock Users for Role Switcher
 export const MOCK_USERS_BY_ROLE: Record<UserRole, ArtistProfile> = {
   [UserRole.ARTIST]: MOCK_ARTIST_PROFILE,
-  [UserRole.VENUE]: { ...MOCK_ARTIST_PROFILE, id: 'u_venue', name: 'The Warehouse', role: UserRole.VENUE, avatar: 'https://picsum.photos/seed/venue1/200', location: 'London, UK' },
-  [UserRole.SPONSOR]: { ...MOCK_ARTIST_PROFILE, id: 'u_sponsor', name: 'RedBull Music', role: UserRole.SPONSOR, avatar: 'https://picsum.photos/seed/sponsor1/200', location: 'Global' },
-  [UserRole.REVELLER]: { ...MOCK_ARTIST_PROFILE, id: 'u_reveller', name: 'Alex Fan', role: UserRole.REVELLER, avatar: 'https://picsum.photos/seed/fan1/200', level: 2, xp: 150 },
-  [UserRole.ADMIN]: { ...MOCK_ARTIST_PROFILE, id: 'u_admin', name: 'System Admin (Demo)', role: UserRole.ADMIN, avatar: 'https://picsum.photos/seed/admin/200', level: 99 },
-  [UserRole.SYSTEM_ADMIN_LIVE]: { ...MOCK_ARTIST_PROFILE, id: 'u_sys_admin_live', name: 'Kala Owner', role: UserRole.SYSTEM_ADMIN_LIVE, avatar: 'https://picsum.photos/seed/sysadmin/200', level: 100, password: 'live' },
-  [UserRole.ORGANIZER]: { ...MOCK_ARTIST_PROFILE, id: 'u_org', name: 'Festival Co.', role: UserRole.ORGANIZER, avatar: 'https://picsum.photos/seed/org/200' },
+  [UserRole.VENUE]: { ...MOCK_ARTIST_PROFILE, id: 'u_venue', name: 'The Warehouse', role: UserRole.VENUE, avatar: 'https://picsum.photos/seed/venue1/200', location: 'London, UK', stats: { gigsCompleted: 5, activeGigs: 2, rating: 4.8, responseTime: '< 6 hrs' } },
+  [UserRole.SPONSOR]: { ...MOCK_ARTIST_PROFILE, id: 'u_sponsor', name: 'RedBull Music', role: UserRole.SPONSOR, avatar: 'https://picsum.photos/seed/sponsor1/200', location: 'Global', stats: { gigsCompleted: 2, activeGigs: 1, rating: 5.0, responseTime: '< 24 hrs' } },
+  [UserRole.ORGANIZER]: { ...MOCK_ARTIST_PROFILE, id: 'u_org', name: 'Festival Co.', role: UserRole.ORGANIZER, avatar: 'https://picsum.photos/seed/org/200', stats: { gigsCompleted: 1, activeGigs: 1, rating: 4.7, responseTime: '< 12 hrs' } },
+  [UserRole.SERVICE_PROVIDER]: { ...MOCK_ARTIST_PROFILE, id: 'u_service', name: 'Legal Eagle', role: UserRole.SERVICE_PROVIDER, avatar: 'https://picsum.photos/seed/legal/200', stats: { gigsCompleted: 3, activeGigs: 2, rating: 4.9, responseTime: '< 48 hrs' } },
+  
+  [UserRole.REVELLER]: { ...MOCK_ARTIST_PROFILE, id: 'u_reveller', name: 'Alex Fan', role: UserRole.REVELLER, avatar: 'https://picsum.photos/seed/fan1/200', level: 2, xp: 150, stats: { gigsCompleted: 0, activeGigs: 0, rating: 0, responseTime: 'N/A' } },
+  [UserRole.ADMIN]: { ...MOCK_ARTIST_PROFILE, id: 'u_admin', name: 'System Admin', role: UserRole.ADMIN, avatar: 'https://picsum.photos/seed/admin/200', level: 99, stats: { gigsCompleted: 0, activeGigs: 0, rating: 0, responseTime: 'N/A' } },
+  [UserRole.SYSTEM_ADMIN_LIVE]: { ...MOCK_ARTIST_PROFILE, id: 'u_sys_admin_live', name: 'Kala Owner', role: UserRole.SYSTEM_ADMIN_LIVE, avatar: 'https://picsum.photos/seed/sysadmin/200', level: 100, password: 'live', stats: { gigsCompleted: 0, activeGigs: 0, rating: 0, responseTime: 'N/A' } },
+  
   [UserRole.DAO_GOVERNOR]: MOCK_DAO_GOVERNOR_PROFILE,
   [UserRole.DAO_MEMBER]: MOCK_DAO_MEMBER_PROFILE,
-  [UserRole.SERVICE_PROVIDER]: { ...MOCK_ARTIST_PROFILE, id: 'u_service', name: 'Legal Eagle', role: UserRole.SERVICE_PROVIDER, avatar: 'https://picsum.photos/seed/legal/200' }
 };
 
 
 export const MOCK_ROSTER: RosterMember[] = [
   // --- LIVE USERS (for Web2 & Web3 login) ---
   {
-    id: 'u_sys_admin_live_bhoomin',
-    name: 'Bhoomin Pandya',
-    role: UserRole.SYSTEM_ADMIN_LIVE,
-    email: 'bhoominpandya@gmail.com',
-    password: 'live',
-    isMock: false,
-    onboardingComplete: true,
-    avatar: MOCK_USERS_BY_ROLE[UserRole.SYSTEM_ADMIN_LIVE].avatar,
-    location: 'Decentralized',
-  },
-  {
     id: 'u_sys_admin_live',
     name: 'Kala Owner',
     role: UserRole.SYSTEM_ADMIN_LIVE,
-    email: 'admin@kalakrut.io',
+    email: 'bhoominpandya@gmail.com',
     password: 'live',
     isMock: false,
     onboardingComplete: true,
@@ -195,7 +186,7 @@ export const MOCK_ROSTER: RosterMember[] = [
   // --- DEMO USERS (for "Click-to-enter" functionality) ---
   {
     id: 'demo_artist',
-    name: 'Demo Artist',
+    name: 'Luna Eclipse',
     role: UserRole.ARTIST,
     email: 'artist@demo.com',
     password: 'demo',
@@ -206,7 +197,7 @@ export const MOCK_ROSTER: RosterMember[] = [
   },
   {
     id: 'demo_venue',
-    name: 'Demo Venue',
+    name: 'The Warehouse',
     role: UserRole.VENUE,
     email: 'venue@demo.com',
     password: 'demo',
@@ -217,7 +208,7 @@ export const MOCK_ROSTER: RosterMember[] = [
   },
     {
     id: 'demo_sponsor',
-    name: 'Demo Sponsor',
+    name: 'RedBull Music',
     role: UserRole.SPONSOR,
     email: 'sponsor@demo.com',
     password: 'demo',
@@ -228,7 +219,7 @@ export const MOCK_ROSTER: RosterMember[] = [
   },
   {
     id: 'demo_reveller',
-    name: 'Demo Reveller',
+    name: 'Alex Fan',
     role: UserRole.REVELLER,
     email: 'reveller@demo.com',
     password: 'demo',
@@ -239,7 +230,7 @@ export const MOCK_ROSTER: RosterMember[] = [
   },
   {
     id: 'demo_organizer',
-    name: 'Demo Organizer',
+    name: 'Festival Co.',
     role: UserRole.ORGANIZER,
     email: 'organizer@demo.com',
     password: 'demo',
@@ -250,7 +241,7 @@ export const MOCK_ROSTER: RosterMember[] = [
   },
   {
     id: 'demo_service_provider',
-    name: 'Demo Service Provider',
+    name: 'Legal Eagle',
     role: UserRole.SERVICE_PROVIDER,
     email: 'service@demo.com',
     password: 'demo',
@@ -272,7 +263,7 @@ export const MOCK_ROSTER: RosterMember[] = [
   },
   {
     id: 'demo_dao_member',
-    name: 'Demo DAO Member',
+    name: 'Leo Valdez',
     role: UserRole.DAO_MEMBER,
     email: 'member@demo.com',
     password: 'demo',
@@ -283,7 +274,7 @@ export const MOCK_ROSTER: RosterMember[] = [
   },
   {
     id: 'demo_admin',
-    name: 'Demo Admin',
+    name: 'System Admin',
     role: UserRole.ADMIN,
     email: 'admin@demo.com',
     password: 'demo',

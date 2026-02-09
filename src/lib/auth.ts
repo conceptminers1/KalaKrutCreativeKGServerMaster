@@ -1,5 +1,5 @@
 
-import { UserRole, RosterMember, IArtistProfile } from '../types';
+import { UserRole, RosterMember, IArtistProfile } from '../types.ts';
 import { MOCK_USERS_BY_ROLE } from '../mockData';
 
 // A more robust login function to prevent silent failures.
@@ -18,11 +18,12 @@ export const login = (
   if (method === 'web3') {
     if (!walletAddress) return null;
     foundUser = roster.find(u =>
-      u.walletAddress?.toLowerCase()
-      && u.walletAddress.toLowerCase() === walletAddress.toLowerCase()
-      && u.isMock === isMock
-      && u.role === role
+    u.walletAddress?.toLowerCase()
+    && u.walletAddress.toLowerCase() === walletAddress.toLowerCase()
+    && u.isMock === isMock
+    && u.role === role
     );
+
   } else { // web2
     if (!credentials || !credentials.email || !credentials.password) return null;
 

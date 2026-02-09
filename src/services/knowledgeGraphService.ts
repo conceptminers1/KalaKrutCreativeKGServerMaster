@@ -11,30 +11,31 @@ import { UserRole, RosterMember, ArtistProfile } from '../types';
 // --- DEFINITIVE DATA MERGING LOGIC ---
 
 /**
- * Creates a single, clean list of users by merging demo stubs with real profiles.
+ * Creates a single, clean list of users by merging login stubs with real profiles.
  * This is the single source of truth for all user data in the app.
+ * It uses the user's `name` to reliably merge profiles, solving previous data bugs.
  */
-const getMergedRoster = (): RosterMember[] => {
-  const profileMap = new Map<string, ArtistProfile>();
+const getMergedRoster = (): ArtistProfile[] => {
+    // Create a map of detailed profiles from MOCK_USERS_BY_ROLE, keyed by name.
+    const detailedProfileMap = new Map(Object.values(MOCK_USERS_BY_ROLE).map(p => [p.name, p]));
 
-  // 1. Add all base users from the main roster. These have the correct IDs for login.
-  MOCK_ROSTER.forEach(member => {
-    profileMap.set(member.id, {
-      ...MOCK_ARTIST_PROFILE,
-      ...member,
+    // Map over the basic roster info from MOCK_ROSTER.
+    return MOCK_ROSTER.map(rosterUser => {
+        // Find the corresponding detailed profile using the user's name as the key.
+        const detailedProfile = detailedProfileMap.get(rosterUser.name);
+
+        if (detailedProfile) {
+            // A specific profile was found. Return it, but ensure the rosterUser's unique
+            // login details (like id, email, password, isMock) take precedence.
+            return { ...detailedProfile, ...rosterUser };
+        } else {
+            // Fallback for demo users or any users in MOCK_ROSTER not in MOCK_USERS_BY_ROLE.
+            // This is a safety net. For instance, a "Demo Artist" won't have a detailed profile.
+            return { ...MOCK_ARTIST_PROFILE, ...rosterUser };
+        }
     });
-  });
-
-  // 2. Merge the REAL user profiles. This overwrites the demo names/avatars with real ones.
-  Object.values(MOCK_USERS_BY_ROLE).forEach(realProfile => {
-    if (realProfile) {
-      const existingProfile = profileMap.get(realProfile.id) || {};
-      profileMap.set(realProfile.id, { ...existingProfile, ...realProfile });
-    }
-  });
-  
-  return Array.from(profileMap.values());
 };
+
 
 // This finalRoster is the definitive source of user data for the service.
 const finalRoster = getMergedRoster();

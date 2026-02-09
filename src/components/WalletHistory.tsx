@@ -3,7 +3,7 @@ import React from 'react';
 import { Transaction } from '../types';
 import { ArrowDownLeft, ArrowUpRight, Fuel, RefreshCw, ExternalLink } from 'lucide-react';
 
-const MOCK_HISTORY: Transaction[] = [
+export const MOCK_HISTORY: Transaction[] = [
   { id: '1', type: 'Incoming', description: 'Payment for Gig #882', amount: '+0.85', currency: 'ETH', date: '2023-10-14', status: 'Completed', hash: '0x32...a1b2' },
   { id: '2', type: 'Gas', description: 'Contract Deployment (Event)', amount: '-0.012', currency: 'ETH', date: '2023-10-13', status: 'Completed', hash: '0x99...c3d4' },
   { id: '3', type: 'Mint', description: 'Minted NFT: "Neon Rain"', amount: '-0.05', currency: 'ETH', date: '2023-10-12', status: 'Completed', hash: '0x55...e6f7' },

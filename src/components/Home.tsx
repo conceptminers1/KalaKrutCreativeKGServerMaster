@@ -76,8 +76,9 @@ const LinktreeIcon = ({ className }: { className?: string }) => (
 const Home: React.FC<HomeProps> = ({ onLogin, onViewNews, onJoin }) => {
   const { notify } = useToast();
   const { roster: users, transactions, loading } = useData();
-  const stats = { totalMembers: (users || []).length, activeGigs: 0, totalTransactions: (transactions || []).length };
- // const demoModeAvailable = true, isDemoMode = true, setDemoMode = () => {};const demoModeAvailable = true, isDemoMode = true, setDemoMode = (mode: 'demo' | 'live') => {};
+  //const stats = { totalMembers: (users || []).length, activeGigs: 0, totalTransactions: (transactions || []).length };
+  const stats = { totalMembers: 10, activeGigs: 7, marketConversions: 7, totalTransactions: 12 };
+  //const demoModeAvailable = true, isDemoMode = true, setDemoMode = () => {};const demoModeAvailable = true, isDemoMode = true, setDemoMode = (mode: 'demo' | 'live') => {};
   const demoModeAvailable = true, isDemoMode = true, setDemoMode = (mode: 'demo' | 'live') => {};
   const [isPending, startTransition] = useTransition();
   const [selectedRoleForLogin, setSelectedRoleForLogin] = useState<UserRole | null>(null);
@@ -123,6 +124,7 @@ const Home: React.FC<HomeProps> = ({ onLogin, onViewNews, onJoin }) => {
     // 3. Validation for live mode.
     if (loginMode === 'live') {
         if (method === 'web3' && (roleToLogin === UserRole.ADMIN || roleToLogin === UserRole.SYSTEM_ADMIN_LIVE)) {
+           // if (method === 'web3') { await onLogin(roleToLogin, method, loginMode, credentials); setIsLoading(false); } else { setTimeout(() => { onLogin(roleToLogin, method, loginMode, credentials); setIsLoading(false); }, 500); }
             notify("Wallet login is not available for Admin roles. Please use email/password.", "error");
             return;
         }
@@ -322,7 +324,7 @@ const Home: React.FC<HomeProps> = ({ onLogin, onViewNews, onJoin }) => {
                   <TrendingUp className="w-3 h-3" /> +50%
                 </div>
               </div>
-              <div className="text-4xl font-bold text-white mb-1 tracking-tight">12</div>
+              <div className="text-4xl font-bold text-white mb-1 tracking-tight">{stats.marketConversions}</div>
               <div className="text-sm text-kala-400 uppercase font-bold tracking-wider mb-4">Market Conversions</div>
               <div className="w-full bg-kala-900 h-1.5 rounded-full overflow-hidden">
                 <div className="bg-green-500 h-full rounded-full w-[10%]"></div>

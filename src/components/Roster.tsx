@@ -31,14 +31,14 @@ const Roster: React.FC<RosterProps> = ({ onNavigate, onViewProfile }) => {
     // 1. Find all roles that have a REAL user assigned.
     const realUserRoles = new Set(
       members
-        .filter(member => !member.name.startsWith('Demo '))
+        .filter(member => !member.isMock)
         .map(member => member.role)
     );
 
     // 2. Filter the list for display.
     return members.filter(member => {
       // If the member is a demo user...
-      if (member.name.startsWith('Demo ')) {
+      if (member.isMock) {
         // ...hide them if a real user already exists for that role.
         return !realUserRoles.has(member.role);
       }

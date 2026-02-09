@@ -22,7 +22,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<RosterMember | null>(null);
   const [loading, setLoading] = useState(true);
-  const { users, addUser, findUserByEmail } = useData();
+  const { roster, addUser } = useData();
   const { notify: showToast } = useToast();
 
   useEffect(() => {
@@ -30,41 +30,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const storedUser = localStorage.getItem('kk_currentUser');
       if (storedUser) {
         const user: RosterMember = JSON.parse(storedUser);
-        if (users.find(u => u.id === user.id)) {
+        if (roster.find(u => u.id === user.id)) {
           setCurrentUser(user);
         }
       }
     } finally {
       setLoading(false);
     }
-  }, [users]);
+  }, [roster]);
 
   const login = useCallback(async (role: UserRole, method: 'web2' | 'web3', credentials: any) => {
     setLoading(true);
-    const { email, password, isDemo } = credentials;
+    const { email, password, isDemo, id } = credentials; // Ensure `id` is passed for demo logins
 
     if (isDemo) {
-        const demoUser: RosterMember = {
-            id: `demo_${role.toLowerCase()}_${Date.now()}`,
-            name: `Demo ${role}`,
-            role: role,
-            avatar: `https://ui-avatars.com/api/?name=Demo+${role}&background=random`,
-            location: 'Virtual Space',
-            verified: true,
-            rating: 5,
-            assets: { ips: [], contents: [], events: [], products: [], services: [], equipment: [], instruments: [], tickets: [] },
-            subscriberOnly: { email: 'demo@kalakrut.io', phone: 'N/A', agentContact: 'System' },
-            isMock: true,
-            onboardingComplete: true
-        };
-        setCurrentUser(demoUser);
-        localStorage.setItem('kk_currentUser', JSON.stringify(demoUser));
-        showToast(`Logged in as Demo ${role}: Explore the platform with sample data.`, 'success');
+        const userToLogin = roster.find(u => u.id === id); // FIX: Find the correct demo user profile from the roster.
+        if (userToLogin) {
+            setCurrentUser(userToLogin);
+            localStorage.setItem('kk_currentUser', JSON.stringify(userToLogin));
+            showToast(`Logged in as Demo ${userToLogin.role}: Explore the platform with sample data.`, 'success');
+        } else {
+            showToast(`Demo user profile not found.`, 'error');
+        }
         setLoading(false);
         return;
     }
 
-    const existingUser = findUserByEmail(email);
+    const existingUser = roster.find(u => u.email === email);
 
     if (existingUser) {
         if (existingUser.password === password) {
@@ -99,7 +91,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             level: 1
         };
         await addUser(newProfile);
-        const newUser = findUserByEmail(email);
+        const newUser = roster.find(u => u.email === email);
         if (newUser) {
             setCurrentUser(newUser);
             localStorage.setItem('kk_currentUser', JSON.stringify(newUser));
@@ -109,15 +101,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     }
     setLoading(false);
-  }, [findUserByEmail, addUser, showToast, users]);
+  }, [roster, addUser, showToast]);
 
   const signup = useCallback(async (profile: ArtistProfile) => {
-    if (findUserByEmail(profile.email)) {
+    if (roster.find(u => u.email === profile.email)) {
         showToast('Registration Failed: An account with this email already exists.', 'error');
         return;
     }
     await addUser(profile);
-    const newUser = findUserByEmail(profile.email);
+    const newUser = roster.find(u => u.email === profile.email);
     if (newUser) {
         setCurrentUser(newUser);
         localStorage.setItem('kk_currentUser', JSON.stringify(newUser));
@@ -125,7 +117,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } else {
         showToast("Error creating account.", 'error');
     }
-  }, [findUserByEmail, addUser, showToast]);
+  }, [roster, addUser, showToast]);
 
   const logout = useCallback(() => {
     setCurrentUser(null);

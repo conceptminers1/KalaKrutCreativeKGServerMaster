@@ -14,40 +14,14 @@ import {
   MOCK_TREASURY_ASSETS as initialTreasuryAssets,
   MOCK_STAFF as initialStaff,
   MOCK_MODERATION_CASES as initialModerationCases,
-  MOCK_USERS_BY_ROLE,
   MOCK_ARTIST_PROFILE
 } from '../mockData';
 
-// --- DEFINITIVE FIX: Merge All User Data at the Source ---
-// This function creates a single, clean list of users by merging the demo stubs with real profiles.
-const getMergedRoster = () => {
-  const profileMap = new Map<string, ArtistProfile>();
-
-  // 1. Add all base users from the main roster to the map, keyed by their unique ID.
-  // This includes the "demo_artist", "demo_venue" etc., which are needed for login.
-  initialRoster.forEach(member => {
-    profileMap.set(member.id, {
-      ...MOCK_ARTIST_PROFILE, // Start with a generic fallback profile
-      ...member, // Apply the specific member data (id, role, etc.)
-    });
-  });
-
-  // 2. Now, merge the REAL user profiles from MOCK_USERS_BY_ROLE.
-  // This finds the correct user by ID and merges the real name and details over the demo data.
-  Object.values(MOCK_USERS_BY_ROLE).forEach(realProfile => {
-    if (realProfile) {
-      const existingProfile = profileMap.get(realProfile.id) || {};
-      // Merge the real profile onto the existing one. The real name and avatar will overwrite the demo/generic ones.
-      profileMap.set(realProfile.id, { ...existingProfile, ...realProfile });
-    }
-  });
-  
-  // The final list now contains a single, correct entry for every user.
-  return Array.from(profileMap.values());
-};
-
-
-const rosterWithFullProfiles = getMergedRoster();
+// A simple, stable way to create the initial roster with full profiles
+const rosterWithFullProfiles: ArtistProfile[] = initialRoster.map(user => ({
+  ...MOCK_ARTIST_PROFILE, // Start with a complete, default artist profile
+  ...user, // Spread the specific user data from the roster, overwriting name, id, etc.
+}));
 
 interface DataContextType {
   currentUser: ArtistProfile | null;
@@ -69,7 +43,7 @@ interface DataContextType {
   staff: StaffMember[];
   moderationCases: ModerationCase[];
   loading: boolean;
-  login: (user: ArtistProfile | RosterMember) => void;
+  login: (user: RosterMember) => void;
   logout: () => void;
   addMessage: (message: Message) => void;
   addProposal: (proposal: Proposal) => void;
@@ -121,9 +95,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const [loading, setLoading] = useState(false);
 
-  const login = (user: ArtistProfile | RosterMember) => {
+  const login = (user: RosterMember) => {
+    // Find the full profile from the main roster state
     const fullProfile = roster.find(r => r.id === user.id);
-    setCurrentUser(fullProfile || null);
+    if (fullProfile) {
+      setCurrentUser(fullProfile);
+    }
   };
 
   const logout = () => {
@@ -132,12 +109,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addUser = (user: Omit<RosterMember, 'id'>): RosterMember => {
     const newUser: RosterMember = { ...user, id: `user-${Date.now()}` };
-    setRoster(prev => [...prev, newUser as ArtistProfile]);
+    const newProfile: ArtistProfile = { ...MOCK_ARTIST_PROFILE, ...newUser };
+    setRoster(prev => [...prev, newProfile]);
     return newUser;
   };
 
   const updateUser = (updatedUser: ArtistProfile) => {
     setRoster(prev => prev.map(user => user.id === updatedUser.id ? updatedUser : user));
+    if (currentUser && currentUser.id === updatedUser.id) {
+      setCurrentUser(updatedUser);
+    }
   };
 
   const addMessage = (message: Message) => {
@@ -161,7 +142,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         const newLead: Lead = {
             id: artist.id,
-            email: `${artist.name.replace(/\s+/g, '.') .toLowerCase()}@example-lead.com`,
+            email: `${artist.name.replace(/\s+/g, '.').toLowerCase()}@example-lead.com`,
             source: 'MusicBrainz Search',
             status: 'New',
             generatedDate: new Date().toISOString(),
